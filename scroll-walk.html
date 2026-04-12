@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scroll-Driven Walk Cycle</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      height: 30000px;
+      background: linear-gradient(180deg, #f0ece4 0%, #ddd6c8 100%);
+      overflow-x: hidden;
+    }
+
+    .scroll-hint {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      color: #999;
+      letter-spacing: 0.5px;
+      z-index: 10;
+      pointer-events: none;
+      animation: pulse 2s ease-in-out infinite;
+      transition: opacity 0.5s ease;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 1; }
+    }
+
+    /* Canvas is the character — centered, no CSS flip tricks needed */
+    #character {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: block;
+    }
+
+    .ground {
+      position: fixed;
+      top: calc(50% + 137px);
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: rgba(0, 0, 0, 0.06);
+      pointer-events: none;
+    }
+
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: #8a7e6b;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="progress-bar" id="progressBar"></div>
+
+  <!-- Canvas replaces the img/div approach — we draw each frame directly -->
+  <canvas id="character" width="200" height="274"></canvas>
+
+  <div class="ground"></div>
+  <div class="scroll-hint" id="scrollHint">&#8595; Scroll to walk &#8595;</div>
+
+  <script>
+    const canvas = document.getElementById('character');
+    const ctx    = canvas.getContext('2d');
+
+    const displayW = 200;
+    const displayH = 274;
+
+    const TOTAL_FRAMES   = 8;
+    const NATIVE_SHEET_W = 4728;
+    const NATIVE_SHEET_H = 817;
+    const NATIVE_FRAME_W = NATIVE_SHEET_W / TOTAL_FRAMES;
+    const PIXELS_PER_FRAME = 80;
+
+    // Idle frame shown on page load before any scrolling
+    const idleImg = new Image();
+    idleImg.src   = 'Facing-01.png';
+
+    idleImg.onload = () => {
+      ctx.drawImage(idleImg, 0, 0, displayW, displayH);
+    };
+
+    const sprite = new Image();
+    sprite.src   = 'Character4.png';
+
+    // framesLeft = facing left (scroll down). Facing right is drawn by re-flipping at draw time.
+    const framesLeft = [];
+
+    sprite.onload = () => {
+      // Step 1: Find horizontal center-of-mass for each frame
+      const centers = [];
+      for (let i = 0; i < TOTAL_FRAMES; i++) {
+        const tmp   = document.createElement('canvas');
+        tmp.width   = Math.ceil(NATIVE_FRAME_W);
+        tmp.height  = NATIVE_SHEET_H;
+        const tctx  = tmp.getContext('2d');
+        tctx.drawImage(sprite, i * NATIVE_FRAME_W, 0, NATIVE_FRAME_W, NATIVE_SHEET_H, 0, 0, tmp.width, NATIVE_SHEET_H);
+
+        const data = tctx.getImageData(0, 0, tmp.width, NATIVE_SHEET_H).data;
+        let minX = tmp.width, maxX = 0;
+        for (let y = 0; y < NATIVE_SHEET_H; y++) {
+          for (let x = 0; x < tmp.width; x++) {
+            if (data[(y * tmp.width + x) * 4 + 3] > 10) {
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+            }
+          }
+        }
+        centers.push((minX + maxX) / 2);
+      }
+
+      const avgCenter = centers.reduce((a, b) => a + b, 0) / centers.length;
+      const scale     = displayH / NATIVE_SHEET_H;
+      const frameDrawW = Math.ceil(NATIVE_FRAME_W * scale);
+
+      for (let i = 0; i < TOTAL_FRAMES; i++) {
+        const offset = (centers[i] - avgCenter) * scale;
+
+        // --- Facing left (flipped) — used when scrolling down ---
+        const fcL   = document.createElement('canvas');
+        fcL.width   = displayW;
+        fcL.height  = displayH;
+        const fctxL = fcL.getContext('2d');
+        fctxL.save();
+        fctxL.translate(displayW, 0);
+        fctxL.scale(-1, 1);
+        fctxL.drawImage(sprite, i * NATIVE_FRAME_W, 0, NATIVE_FRAME_W, NATIVE_SHEET_H, -offset, 0, frameDrawW, displayH);
+        fctxL.restore();
+        framesLeft.push(fcL);
+
+        // framesRight are derived from framesLeft at draw time (re-flip)
+      }
+    };
+
+    let currentFrame     = 0;
+    let lastFrameTime    = 0;
+    let scrollDir        = 'down';
+    let lastScrollY      = 0;
+    let isFacing         = false;
+    let dirChangeScrollY = 0;
+    const FACING_THRESHOLD = 100; // px to scroll in new direction before walking starts
+    const MIN_MS_PER_FRAME = 100;
+
+    function drawFacing() {
+      ctx.clearRect(0, 0, displayW, displayH);
+      ctx.drawImage(idleImg, 0, 0, displayW, displayH);
+    }
+
+    function drawFrame(index) {
+      ctx.clearRect(0, 0, displayW, displayH);
+      const fc = framesLeft[index];
+      if (!fc) return;
+      if (scrollDir === 'down') {
+        ctx.drawImage(fc, 0, 0);
+      } else {
+        ctx.save();
+        ctx.translate(displayW, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(fc, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    const progressBar = document.getElementById('progressBar');
+    const scrollHint  = document.getElementById('scrollHint');
+    let totalScroll   = document.body.scrollHeight - window.innerHeight;
+    let hintHidden    = false;
+    let rafPending    = false;
+
+    function tick(timestamp) {
+      rafPending = false;
+      const scrollY = window.scrollY;
+
+      // Back at very top — idle frame
+      if (scrollY === 0) {
+        drawFacing();
+        currentFrame     = 0;
+        lastFrameTime    = 0;
+        lastScrollY      = 0;
+        isFacing         = false;
+        return;
+      }
+
+      // Show facing frame on direction change until threshold is exceeded.
+      // If user stops scrolling here they stay on the facing frame.
+      if (isFacing) {
+        const scrolledSinceChange = Math.abs(scrollY - dirChangeScrollY);
+        if (scrolledSinceChange < FACING_THRESHOLD) {
+          drawFacing();
+          return;
+        }
+        isFacing = false;
+      }
+
+      // Advance walk frame at capped rate
+      const elapsed = timestamp - lastFrameTime;
+      if (elapsed >= MIN_MS_PER_FRAME) {
+        currentFrame  = (currentFrame + 1) % TOTAL_FRAMES;
+        lastFrameTime = timestamp;
+      }
+
+      drawFrame(currentFrame);
+    }
+
+    window.addEventListener('scroll', () => {
+      const scrollY = window.scrollY;
+      const newDir  = scrollY >= lastScrollY ? 'down' : 'up';
+
+      // Direction changed — show facing frame until threshold
+      if (newDir !== scrollDir) {
+        scrollDir        = newDir;
+        dirChangeScrollY = scrollY;
+        isFacing         = true;
+      }
+
+      lastScrollY = scrollY;
+
+      progressBar.style.width = (scrollY / totalScroll * 100) + '%';
+
+      if (!hintHidden && scrollY > 50) {
+        scrollHint.style.opacity = '0';
+        hintHidden = true;
+      } else if (hintHidden && scrollY <= 50) {
+        scrollHint.style.opacity = '1';
+        hintHidden = false;
+      }
+
+      if (!rafPending) {
+        rafPending = true;
+        requestAnimationFrame(tick);
+      }
+    }, { passive: true });
+
+    window.addEventListener('resize', () => {
+      totalScroll = document.body.scrollHeight - window.innerHeight;
+    });
+  </script>
+
+</body>
+</html>
