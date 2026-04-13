@@ -40,7 +40,7 @@
     /* Canvas is the character — centered, no CSS flip tricks needed */
     #character {
       position: fixed;
-      top: 50%;
+      top: 72%;
       left: 50%;
       transform: translate(-50%, -50%);
       display: block;
@@ -48,7 +48,7 @@
 
     .ground {
       position: fixed;
-      top: calc(50% + 137px);
+      top: calc(72% + 137px);
       left: 0;
       width: 100%;
       height: 2px;
@@ -75,7 +75,7 @@
   <canvas id="character" width="200" height="274"></canvas>
 
   <div class="ground"></div>
-  <div class="scroll-hint" id="scrollHint">&#8595; Scroll to walk &#8595;</div>
+  <div class="scroll-hint" id="scrollHint" style="opacity:0">&#8595; Scroll to walk &#8595;</div>
 
   <script>
     const canvas = document.getElementById('character');
@@ -90,16 +90,27 @@
     const NATIVE_FRAME_W = NATIVE_SHEET_W / TOTAL_FRAMES;
     const PIXELS_PER_FRAME = 80;
 
-    // Idle frame shown on page load before any scrolling
-    const idleImg = new Image();
-    idleImg.src   = 'Facing-01.png';
+    // --- Image assets ---
+    const idleImg    = new Image();
+    const falling1   = new Image();
+    const falling2   = new Image();
+    idleImg.src      = 'Facing-01.png';
+    falling1.src     = 'Falling1.png';
+    falling2.src     = 'Falling2.png';
 
-    idleImg.onload = () => {
-      ctx.drawImage(idleImg, 0, 0, displayW, displayH);
-    };
+    // Track how many assets have loaded before starting the fall
+    let assetsLoaded = 0;
+    const TOTAL_ASSETS = 4; // falling1, falling2, idleImg, sprite
+    function onAssetLoaded() {
+      assetsLoaded++;
+      if (assetsLoaded === TOTAL_ASSETS) startFall();
+    }
+    falling1.onload  = onAssetLoaded;
+    falling2.onload  = onAssetLoaded;
+    idleImg.onload   = onAssetLoaded;
 
-    const sprite = new Image();
-    sprite.src   = 'Character4.png';
+    const sprite  = new Image();
+    sprite.src    = 'Character4.png';
 
     // framesLeft = facing left (scroll down). Facing right is drawn by re-flipping at draw time.
     const framesLeft = [];
@@ -148,7 +159,68 @@
 
         // framesRight are derived from framesLeft at draw time (re-flip)
       }
+      onAssetLoaded(); // sprite sheet done
     };
+
+    // ---- Fall animation ----
+    let scrollEnabled = false; // locked until landing is complete
+
+    function startFall() {
+      const groundY   = window.innerHeight * 0.72 - displayH / 2;
+      let y           = -displayH * 1.5;
+      let vy          = 0;
+      const gravity   = 0.04;
+      const bounce    = 0;
+      let bounceCount = 0;
+      const MAX_BOUNCES = 0;
+      let fallFrame   = 0;
+      let lastFallFrameTime = 0;
+      const FALL_FRAME_MS   = 70;
+
+      // Override CSS centering — we'll control top in px during fall
+      canvas.style.top       = 'auto';
+      canvas.style.transform = 'translateX(-50%)';
+
+      function fallTick(timestamp) {
+        // Alternate between Falling1 and Falling2
+        if (timestamp - lastFallFrameTime > FALL_FRAME_MS) {
+          fallFrame = fallFrame === 0 ? 1 : 0;
+          lastFallFrameTime = timestamp;
+        }
+
+        vy += gravity;
+        y  += vy;
+
+        if (y >= groundY) {
+          y  = groundY;
+          vy = 0;
+        }
+
+        canvas.style.top = y + 'px';
+
+        ctx.clearRect(0, 0, displayW, displayH);
+        ctx.drawImage(fallFrame === 0 ? falling1 : falling2, 0, 0, displayW, displayH);
+
+        // Stop when landed
+        if (y >= groundY) {
+          canvas.style.top       = '72%';
+          canvas.style.transform = 'translate(-50%, -50%)';
+          // Show idle frame and unlock scroll
+          ctx.clearRect(0, 0, displayW, displayH);
+          ctx.drawImage(idleImg, 0, 0, displayW, displayH);
+          scrollEnabled = true;
+          // Fade in scroll hint after landing
+          setTimeout(() => {
+            document.getElementById('scrollHint').style.opacity = '';
+          }, 400);
+          return;
+        }
+
+        requestAnimationFrame(fallTick);
+      }
+
+      requestAnimationFrame(fallTick);
+    }
 
     let currentFrame     = 0;
     let lastFrameTime    = 0;
@@ -221,6 +293,11 @@
     }
 
     window.addEventListener('scroll', () => {
+      if (!scrollEnabled) {
+        window.scrollTo(0, 0);
+        return;
+      }
+
       const scrollY = window.scrollY;
       const newDir  = scrollY >= lastScrollY ? 'down' : 'up';
 
