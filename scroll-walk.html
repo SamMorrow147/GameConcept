@@ -37,6 +37,17 @@
       50%       { opacity: 1; }
     }
 
+    /* Background world canvas — sits behind everything */
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
     /* Canvas is the character — centered, no CSS flip tricks needed */
     #character {
       position: fixed;
@@ -44,6 +55,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       display: block;
+      z-index: 2;
     }
 
     .ground {
@@ -54,6 +66,7 @@
       height: 2px;
       background: rgba(0, 0, 0, 0.06);
       pointer-events: none;
+      z-index: 3;
     }
 
     .progress-bar {
@@ -65,19 +78,356 @@
       background: #8a7e6b;
       z-index: 100;
     }
+
+    /* ---- Landing title ---- */
+    #landingTitle {
+      position: fixed;
+      top: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 700px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: clamp(28px, 5.5vw, 56px);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      color: #2c2820;
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+    }
+    #landingTitle.show {
+      opacity: 1;
+    }
+
+    /* ---- Stress HUD ---- */
+    #stressHud {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 50;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    /* Notification bell — top-right */
+    .stress-notif {
+      position: absolute;
+      top: 30px;
+      right: 40px;
+      display: flex;
+      align-items: flex-start;
+    }
+    .stress-notif .bell {
+      font-size: 48px;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+      animation: bellShake 0.4s ease-in-out infinite;
+      transform-origin: top center;
+    }
+    @keyframes bellShake {
+      0%, 100% { transform: rotate(0deg); }
+      25%      { transform: rotate(8deg); }
+      75%      { transform: rotate(-8deg); }
+    }
+    .stress-notif .badge {
+      position: relative;
+      top: -4px;
+      left: -14px;
+      min-width: 26px;
+      height: 26px;
+      line-height: 26px;
+      padding: 0 7px;
+      border-radius: 13px;
+      background: #e53935;
+      color: #fff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(229,57,53,0.4);
+    }
+
+    /* Emails — top-left */
+    .stress-emails {
+      position: absolute;
+      top: 30px;
+      left: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-width: 260px;
+    }
+    .email-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 10px;
+      padding: 8px 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 12px;
+      color: #333;
+      opacity: 0;
+      transform: translateX(-20px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .email-row.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .email-row .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4285f4;
+      flex-shrink: 0;
+    }
+    .email-row .email-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .email-row .email-time {
+      margin-left: auto;
+      color: #999;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    /* Chart — bottom-left */
+    .stress-chart {
+      position: absolute;
+      bottom: 60px;
+      left: 30px;
+      width: 160px;
+      height: 100px;
+    }
+    .stress-chart canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .stress-chart .chart-label {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 10px;
+      color: #999;
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    /* Metrics — bottom-right */
+    .stress-metrics {
+      position: absolute;
+      bottom: 60px;
+      right: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .metric-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    .metric-row .metric-val {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-row .metric-label {
+      font-size: 11px;
+      color: #999;
+    }
+    .metric-row .metric-delta {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e53935;
+    }
+
+    @media (max-width: 480px) {
+      .stress-chart {
+        width: 100px;
+        height: 64px;
+        bottom: 36px;
+        left: 14px;
+      }
+      .stress-chart .chart-label {
+        font-size: 8px;
+      }
+      .stress-metrics {
+        bottom: 36px;
+        right: 14px;
+        gap: 4px;
+      }
+      .metric-row .metric-val {
+        font-size: 16px;
+      }
+      .metric-row .metric-label {
+        font-size: 9px;
+      }
+      .metric-row .metric-delta {
+        font-size: 9px;
+      }
+    }
   </style>
 </head>
 <body>
 
   <div class="progress-bar" id="progressBar"></div>
 
+  <!-- Background world layer — objects scroll behind the character -->
+  <canvas id="bgCanvas"></canvas>
+
   <!-- Canvas replaces the img/div approach — we draw each frame directly -->
   <canvas id="character" width="200" height="274"></canvas>
 
+  <div id="landingTitle">Steps to success are both big and small</div>
   <div class="ground"></div>
   <div class="scroll-hint" id="scrollHint" style="opacity:0">&#8595; Scroll to walk &#8595;</div>
 
+  <!-- Stress HUD — appears when walking right -->
+  <div id="stressHud">
+    <!-- Notification bell -->
+    <div class="stress-notif">
+      <div class="bell">&#128276;</div>
+      <div class="badge" id="notifCount">1</div>
+    </div>
+
+    <!-- Emails stacking up -->
+    <div class="stress-emails" id="emailStack"></div>
+
+    <!-- Rising chart -->
+    <div class="stress-chart">
+      <canvas id="stressChartCanvas" width="320" height="200"></canvas>
+      <div class="chart-label">STRESS INDEX</div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="stress-metrics">
+      <div class="metric-row">
+        <span class="metric-val" id="metricTasks">0</span>
+        <span class="metric-label">tasks</span>
+        <span class="metric-delta" id="metricTasksDelta"></span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-val" id="metricMeetings">0</span>
+        <span class="metric-label">meetings</span>
+        <span class="metric-delta" id="metricMeetingsDelta"></span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-val" id="metricDeadlines">0</span>
+        <span class="metric-label">deadlines</span>
+        <span class="metric-delta" id="metricDeadlinesDelta"></span>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // ============================================================
+    // BACKGROUND WORLD SYSTEM
+    // ============================================================
+    // How it works:
+    //   cameraX tracks where in the world the character "is".
+    //   Each scroll pixel moves cameraX by WORLD_SPEED units.
+    //   Walking right (scroll down) → cameraX increases → objects slide LEFT.
+    //   Walking left  (scroll up)   → cameraX decreases → objects slide RIGHT.
+    //
+    //   Screen position of an object:
+    //     screenX = obj.worldX - cameraX * obj.parallaxFactor
+    //
+    //   worldX is the object's left-edge position when cameraX = 0,
+    //   i.e. its initial screen X at game start. Positive = right of center,
+    //   negative = left of center.
+    //
+    //   parallaxFactor: 1.0 = solid foreground speed, <1.0 = further back.
+    //
+    // To add more objects just call addBgObject({ ... }) — see bottom of script.
+    // ============================================================
+
+    const bgCanvas = document.getElementById('bgCanvas');
+    const bgCtx    = bgCanvas.getContext('2d');
+
+    let cameraX = 0;
+    const WORLD_SPEED = 0.3; // world pixels moved per scroll pixel
+
+    function getGroundY() {
+      // Must match the CSS .ground rule: top: calc(72% + 137px)
+      return window.innerHeight * 0.72 + 137;
+    }
+
+    function resizeBgCanvas() {
+      bgCanvas.width  = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    }
+    resizeBgCanvas();
+
+    // Registry of background objects
+    // Each entry: { img, worldX, displayHeight, yOffset, parallaxFactor, loaded }
+    //   yOffset: pixels to raise the object above the ground line (default 0 = sits on ground)
+    const bgObjects = [];
+
+    function addBgObject(config) {
+      const obj = {
+        img:            new Image(),
+        worldX:         config.worldX,
+        displayHeight:  config.displayHeight,
+        yOffset:        config.yOffset        ?? 0,
+        parallaxFactor: config.parallaxFactor ?? 1.0,
+        opacity:        config.opacity        ?? 1.0,
+        loaded:         false
+      };
+      obj.img.onload = () => { obj.loaded = true; drawBackground(); };
+      obj.img.src    = config.src;
+      bgObjects.push(obj);
+      return obj;
+    }
+
+    function drawBackground() {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      const groundY = getGroundY();
+
+      for (const obj of bgObjects) {
+        if (!obj.loaded) continue;
+
+        const dh = obj.displayHeight;
+        const dw = (obj.img.naturalWidth / obj.img.naturalHeight) * dh;
+
+        // Apply parallax: objects with factor < 1 move slower (feel further away)
+        const screenX = obj.worldX - cameraX * obj.parallaxFactor;
+        const screenY = groundY - dh - obj.yOffset; // yOffset lifts the object above ground
+
+        // Skip if fully off-screen (left or right)
+        if (screenX + dw < 0 || screenX > bgCanvas.width) continue;
+
+        bgCtx.globalAlpha = obj.opacity;
+        bgCtx.drawImage(obj.img, screenX, screenY, dw, dh);
+        bgCtx.globalAlpha = 1.0;
+      }
+    }
+
+    // ---- Register world objects ----
+    // The office building starts just off the right edge of the screen.
+    // As soon as the character walks right it slides in from the right.
+    addBgObject({
+      src:            '24758475_office_03 [Converted].png',
+      worldX:         window.innerWidth + 80,
+      displayHeight:  115,           // small background window
+      yOffset:        180,           // float it up above the ground line
+      parallaxFactor: 0.4,           // slow parallax — feels distant
+      opacity:        0.7
+    });
+    // ---- Add more objects here with addBgObject({ ... }) ----
+
+    // ============================================================
+
     const canvas = document.getElementById('character');
     const ctx    = canvas.getContext('2d');
 
@@ -88,7 +438,7 @@
     const NATIVE_SHEET_W = 4728;
     const NATIVE_SHEET_H = 817;
     const NATIVE_FRAME_W = NATIVE_SHEET_W / TOTAL_FRAMES;
-    const PIXELS_PER_FRAME = 80;
+    const PIXELS_PER_FRAME = 200;
 
     // --- Image assets ---
     const idleImg    = new Image();
@@ -113,17 +463,19 @@
     sprite.src    = 'Character4.png';
 
     // framesLeft = facing left (scroll down). Facing right is drawn by re-flipping at draw time.
-    const framesLeft = [];
+    const framesLeft  = [];
+    const framesPhone = []; // phone-checking walk sprite, same layout
+    let   usePhoneSprite = false;
 
-    sprite.onload = () => {
-      // Step 1: Find horizontal center-of-mass for each frame
+    // Shared baking function — builds flipped frames from any sprite sheet image
+    function bakeFrames(srcImg, targetArray, callback) {
       const centers = [];
       for (let i = 0; i < TOTAL_FRAMES; i++) {
         const tmp   = document.createElement('canvas');
         tmp.width   = Math.ceil(NATIVE_FRAME_W);
         tmp.height  = NATIVE_SHEET_H;
         const tctx  = tmp.getContext('2d');
-        tctx.drawImage(sprite, i * NATIVE_FRAME_W, 0, NATIVE_FRAME_W, NATIVE_SHEET_H, 0, 0, tmp.width, NATIVE_SHEET_H);
+        tctx.drawImage(srcImg, i * NATIVE_FRAME_W, 0, NATIVE_FRAME_W, NATIVE_SHEET_H, 0, 0, tmp.width, NATIVE_SHEET_H);
 
         const data = tctx.getImageData(0, 0, tmp.width, NATIVE_SHEET_H).data;
         let minX = tmp.width, maxX = 0;
@@ -138,28 +490,35 @@
         centers.push((minX + maxX) / 2);
       }
 
-      const avgCenter = centers.reduce((a, b) => a + b, 0) / centers.length;
-      const scale     = displayH / NATIVE_SHEET_H;
+      const avgCenter  = centers.reduce((a, b) => a + b, 0) / centers.length;
+      const scale      = displayH / NATIVE_SHEET_H;
       const frameDrawW = Math.ceil(NATIVE_FRAME_W * scale);
 
       for (let i = 0; i < TOTAL_FRAMES; i++) {
         const offset = (centers[i] - avgCenter) * scale;
-
-        // --- Facing left (flipped) — used when scrolling down ---
-        const fcL   = document.createElement('canvas');
-        fcL.width   = displayW;
-        fcL.height  = displayH;
-        const fctxL = fcL.getContext('2d');
-        fctxL.save();
-        fctxL.translate(displayW, 0);
-        fctxL.scale(-1, 1);
-        fctxL.drawImage(sprite, i * NATIVE_FRAME_W, 0, NATIVE_FRAME_W, NATIVE_SHEET_H, -offset, 0, frameDrawW, displayH);
-        fctxL.restore();
-        framesLeft.push(fcL);
-
-        // framesRight are derived from framesLeft at draw time (re-flip)
+        const fc     = document.createElement('canvas');
+        fc.width     = displayW;
+        fc.height    = displayH;
+        const fctx   = fc.getContext('2d');
+        fctx.save();
+        fctx.translate(displayW, 0);
+        fctx.scale(-1, 1);
+        fctx.drawImage(srcImg, i * NATIVE_FRAME_W, 0, NATIVE_FRAME_W, NATIVE_SHEET_H, -offset, 0, frameDrawW, displayH);
+        fctx.restore();
+        targetArray.push(fc);
       }
-      onAssetLoaded(); // sprite sheet done
+      if (callback) callback();
+    }
+
+    sprite.onload = () => {
+      bakeFrames(sprite, framesLeft, onAssetLoaded);
+    };
+
+    // Phone sprite — loads independently, does NOT gate the fall sequence
+    const phoneSprite = new Image();
+    phoneSprite.src   = 'CheckPhone.png';
+    phoneSprite.onload = () => {
+      bakeFrames(phoneSprite, framesPhone, null);
     };
 
     // ---- Fall animation ----
@@ -169,7 +528,7 @@
       const groundY   = window.innerHeight * 0.72 - displayH / 2;
       let y           = -displayH * 1.5;
       let vy          = 0;
-      const gravity   = 0.04;
+      const gravity   = 0.12;
       const bounce    = 0;
       let bounceCount = 0;
       const MAX_BOUNCES = 0;
@@ -209,10 +568,13 @@
           ctx.clearRect(0, 0, displayW, displayH);
           ctx.drawImage(idleImg, 0, 0, displayW, displayH);
           scrollEnabled = true;
-          // Fade in scroll hint after landing
+          // Fade in title and scroll hint after landing
+          setTimeout(() => {
+            document.getElementById('landingTitle').classList.add('show');
+          }, 300);
           setTimeout(() => {
             document.getElementById('scrollHint').style.opacity = '';
-          }, 400);
+          }, 800);
           return;
         }
 
@@ -223,13 +585,12 @@
     }
 
     let currentFrame     = 0;
-    let lastFrameTime    = 0;
+    let scrollAccum      = 0; // accumulated scroll px — drives frame advancement
     let scrollDir        = 'down';
     let lastScrollY      = 0;
     let isFacing         = false;
     let dirChangeScrollY = 0;
     const FACING_THRESHOLD = 100; // px to scroll in new direction before walking starts
-    const MIN_MS_PER_FRAME = 100;
 
     function drawFacing() {
       ctx.clearRect(0, 0, displayW, displayH);
@@ -238,7 +599,8 @@
 
     function drawFrame(index) {
       ctx.clearRect(0, 0, displayW, displayH);
-      const fc = framesLeft[index];
+      const frames = (usePhoneSprite && framesPhone.length) ? framesPhone : framesLeft;
+      const fc = frames[index];
       if (!fc) return;
       if (scrollDir === 'down') {
         ctx.drawImage(fc, 0, 0);
@@ -257,22 +619,24 @@
     let hintHidden    = false;
     let rafPending    = false;
 
-    function tick(timestamp) {
+    function tick() {
       rafPending = false;
       const scrollY = window.scrollY;
+
+      // Always redraw background (camera may have moved)
+      drawBackground();
 
       // Back at very top — idle frame
       if (scrollY === 0) {
         drawFacing();
-        currentFrame     = 0;
-        lastFrameTime    = 0;
-        lastScrollY      = 0;
-        isFacing         = false;
+        currentFrame = 0;
+        scrollAccum  = 0;
+        lastScrollY  = 0;
+        isFacing     = false;
         return;
       }
 
       // Show facing frame on direction change until threshold is exceeded.
-      // If user stops scrolling here they stay on the facing frame.
       if (isFacing) {
         const scrolledSinceChange = Math.abs(scrollY - dirChangeScrollY);
         if (scrolledSinceChange < FACING_THRESHOLD) {
@@ -282,11 +646,12 @@
         isFacing = false;
       }
 
-      // Advance walk frame at capped rate
-      const elapsed = timestamp - lastFrameTime;
-      if (elapsed >= MIN_MS_PER_FRAME) {
-        currentFrame  = (currentFrame + 1) % TOTAL_FRAMES;
-        lastFrameTime = timestamp;
+      // Advance one frame for every PIXELS_PER_FRAME of scroll distance.
+      // This ties the animation directly to how far the user has scrolled,
+      // so fast scrolling = fast walk, slow scrolling = slow walk, stopped = stopped.
+      while (scrollAccum >= PIXELS_PER_FRAME) {
+        currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
+        scrollAccum -= PIXELS_PER_FRAME;
       }
 
       drawFrame(currentFrame);
@@ -298,7 +663,17 @@
         return;
       }
 
-      const scrollY = window.scrollY;
+      const scrollY     = window.scrollY;
+      const scrollDelta = scrollY - lastScrollY;
+
+      // Accumulate absolute scroll distance to drive walk frame advancement
+      scrollAccum += Math.abs(scrollDelta);
+
+      // Move the world camera with walk direction:
+      //   scroll down (delta > 0, walking right) → cameraX increases → objects slide LEFT  ✓
+      //   scroll up   (delta < 0, walking left)  → cameraX decreases → objects slide RIGHT ✓
+      cameraX += scrollDelta * WORLD_SPEED;
+
       const newDir  = scrollY >= lastScrollY ? 'down' : 'up';
 
       // Direction changed — show facing frame until threshold
@@ -314,9 +689,11 @@
 
       if (!hintHidden && scrollY > 50) {
         scrollHint.style.opacity = '0';
+        document.getElementById('landingTitle').classList.remove('show');
         hintHidden = true;
       } else if (hintHidden && scrollY <= 50) {
         scrollHint.style.opacity = '1';
+        document.getElementById('landingTitle').classList.add('show');
         hintHidden = false;
       }
 
@@ -328,7 +705,168 @@
 
     window.addEventListener('resize', () => {
       totalScroll = document.body.scrollHeight - window.innerHeight;
+      resizeBgCanvas();
+      drawBackground();
     });
+
+    // ============================================================
+    // STRESS HUD — builds anxiety as you walk right (scroll down)
+    // ============================================================
+
+    const stressHud       = document.getElementById('stressHud');
+    const notifCountEl    = document.getElementById('notifCount');
+    const emailStackEl    = document.getElementById('emailStack');
+    const stressChartCvs  = document.getElementById('stressChartCanvas');
+    const stressChartCtx  = stressChartCvs.getContext('2d');
+    const metricTasksEl   = document.getElementById('metricTasks');
+    const metricMeetEl    = document.getElementById('metricMeetings');
+    const metricDeadEl    = document.getElementById('metricDeadlines');
+    const metricTasksD    = document.getElementById('metricTasksDelta');
+    const metricMeetD     = document.getElementById('metricMeetingsDelta');
+    const metricDeadD     = document.getElementById('metricDeadlinesDelta');
+
+    const STRESS_START = 800;    // scrollY where stress HUD fades in
+    const STRESS_FULL  = 8000;  // scrollY where everything is maxed out
+    const STRESS_END   = 10000; // scrollY where HUD starts fading away
+    const STRESS_GONE  = 13000; // scrollY where HUD is completely gone
+
+    const emails = [
+      { from: 'Boss',        subject: 'Need this ASAP',              time: '8:01 AM' },
+      { from: 'HR',          subject: 'Mandatory training overdue',  time: '8:04 AM' },
+      { from: 'Client',      subject: 'RE: RE: RE: Urgent update',   time: '8:07 AM' },
+      { from: 'Jira',        subject: '[PROJ-1247] moved to In Prog', time: '8:09 AM' },
+      { from: 'Slack',       subject: '14 unread messages in #general', time: '8:12 AM' },
+      { from: 'Calendar',    subject: 'Meeting in 15 min — no agenda', time: '8:14 AM' },
+      { from: 'Boss',        subject: 'Actually need it sooner',     time: '8:16 AM' },
+      { from: 'IT Support',  subject: 'Password expires today',      time: '8:18 AM' },
+      { from: 'Finance',     subject: 'Expense report rejected',     time: '8:21 AM' },
+      { from: 'Slack',       subject: '27 unread messages in #urgent', time: '8:23 AM' },
+    ];
+
+    // Pre-build email DOM rows
+    emails.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'email-row';
+      row.innerHTML =
+        '<div class="dot"></div>' +
+        '<span class="email-text"><b>' + e.from + '</b> — ' + e.subject + '</span>' +
+        '<span class="email-time">' + e.time + '</span>';
+      emailStackEl.appendChild(row);
+    });
+    const emailRows = emailStackEl.querySelectorAll('.email-row');
+
+    let lastStressT = -1;
+
+    function updateStressHud() {
+      const sy = window.scrollY;
+
+      // Completely outside the stress zone — reset sprite
+      if (sy < STRESS_START || sy > STRESS_GONE) {
+        stressHud.style.opacity = '0';
+        usePhoneSprite = false;
+        lastStressT = -1;
+        return;
+      }
+
+      // t: build-up 0→1
+      const t = Math.min((sy - STRESS_START) / (STRESS_FULL - STRESS_START), 1);
+
+      // fadeOut: 1→0 after peak
+      const fadeOut = sy <= STRESS_END ? 1
+        : 1 - Math.min((sy - STRESS_END) / (STRESS_GONE - STRESS_END), 1);
+
+      stressHud.style.opacity = String(fadeOut);
+
+      // Avoid redundant DOM thrashing during fade-out (content stays at peak)
+      const tBucket = Math.floor(t * 200);
+      if (tBucket === lastStressT) return;
+      lastStressT = tBucket;
+
+      // --- Notification counter ---
+      const notifVal = Math.floor(1 + t * 98);
+      notifCountEl.textContent = notifVal;
+
+      // --- Emails ---
+      const visibleEmails = Math.floor(t * emails.length);
+      emailRows.forEach((row, i) => {
+        row.classList.toggle('show', i < visibleEmails);
+      });
+
+      // Switch to phone sprite after the 3rd email (Client RE:RE:RE:) appears,
+      // revert to normal once the HUD has fully faded out (handled above)
+      usePhoneSprite = (visibleEmails >= 3) && (sy < STRESS_GONE);
+
+      // --- Metrics ---
+      const tasks    = Math.floor(t * 47);
+      const meetings = Math.floor(t * 12);
+      const deadlines = Math.floor(t * 6);
+      metricTasksEl.textContent = tasks;
+      metricMeetEl.textContent  = meetings;
+      metricDeadEl.textContent  = deadlines;
+      metricTasksD.textContent  = tasks > 0 ? '+' + tasks : '';
+      metricMeetD.textContent   = meetings > 0 ? '+' + meetings : '';
+      metricDeadD.textContent   = deadlines > 0 ? '+' + deadlines : '';
+
+      // --- Chart ---
+      drawStressChart(t);
+    }
+
+    function drawStressChart(t) {
+      const w = stressChartCvs.width;
+      const h = stressChartCvs.height;
+      const ctx2 = stressChartCtx;
+      ctx2.clearRect(0, 0, w, h);
+
+      const pad = 20;
+      const plotW = w - pad * 2;
+      const plotH = h - pad * 2;
+
+      // Generate a rising jagged line
+      const points = 24;
+      const visiblePts = Math.max(2, Math.floor(t * points));
+
+      ctx2.beginPath();
+      ctx2.moveTo(pad, h - pad);
+
+      for (let i = 0; i < visiblePts; i++) {
+        const px = pad + (i / (points - 1)) * plotW;
+        const baseY = (i / (points - 1)); // 0→1
+        const jitter = Math.sin(i * 2.7) * 0.12 + Math.cos(i * 4.1) * 0.08;
+        const val = Math.min(baseY + jitter, 1);
+        const py = (h - pad) - val * plotH;
+        ctx2.lineTo(px, py);
+      }
+
+      // Fill under the line
+      const lastX = pad + ((visiblePts - 1) / (points - 1)) * plotW;
+      ctx2.lineTo(lastX, h - pad);
+      ctx2.closePath();
+
+      const grad = ctx2.createLinearGradient(0, pad, 0, h - pad);
+      grad.addColorStop(0, 'rgba(229, 57, 53, 0.35)');
+      grad.addColorStop(1, 'rgba(229, 57, 53, 0.05)');
+      ctx2.fillStyle = grad;
+      ctx2.fill();
+
+      // Stroke the line
+      ctx2.beginPath();
+      ctx2.moveTo(pad, h - pad);
+      for (let i = 0; i < visiblePts; i++) {
+        const px = pad + (i / (points - 1)) * plotW;
+        const baseY = (i / (points - 1));
+        const jitter = Math.sin(i * 2.7) * 0.12 + Math.cos(i * 4.1) * 0.08;
+        const val = Math.min(baseY + jitter, 1);
+        const py = (h - pad) - val * plotH;
+        ctx2.lineTo(px, py);
+      }
+      ctx2.strokeStyle = '#e53935';
+      ctx2.lineWidth = 2.5;
+      ctx2.lineJoin = 'round';
+      ctx2.stroke();
+    }
+
+    window.addEventListener('scroll', updateStressHud, { passive: true });
+
   </script>
 
 </body>
