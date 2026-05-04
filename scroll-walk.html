@@ -19,7 +19,7 @@
 
     .scroll-hint {
       position: fixed;
-      bottom: 30px;
+      bottom: 10px;
       left: 50%;
       transform: translateX(-50%);
       font-family: 'Segoe UI', system-ui, sans-serif;
@@ -56,6 +56,11 @@
       transform: translate(-50%, -50%);
       display: block;
       z-index: 2;
+    }
+    /* Smooth, springy lift used while climbing steps. Only enabled
+       AFTER the fall completes so it doesn't interfere with that animation. */
+    #character.walking {
+      transition: top 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .ground {
@@ -101,6 +106,88 @@
     }
     #landingTitle.show {
       opacity: 1;
+    }
+
+    /* ---- Generic phase text (used for prompts that fade in/out at scrollY ranges) ---- */
+    .phase-text {
+      position: fixed;
+      top: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 720px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: clamp(24px, 4.5vw, 44px);
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.3px;
+      color: #2c2820;
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+    .phase-text.show {
+      opacity: 1;
+    }
+
+    /* ---- Tool bubbles ---- */
+    /* A halo of "what we offer" pills that pop up around the character once
+       they've finished climbing. Each one fades + scales in (springy) when
+       its scrollY threshold is crossed. */
+    #toolBubbles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .tool-bubble {
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #2c2820;
+      padding: 12px;
+      box-sizing: border-box;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.55);
+      transition: opacity 0.45s ease, transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .tool-bubble.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .tool-bubble.featured {
+      width: 170px;
+      height: 170px;
+      background: linear-gradient(140deg, #ffffff 0%, #f5efe2 100%);
+      box-shadow: 0 10px 30px rgba(184, 128, 96, 0.22);
+      font-size: 14px;
+    }
+    .tool-bubble .icon {
+      font-size: 38px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .tool-bubble.featured .icon {
+      font-size: 46px;
+    }
+    .tool-bubble .label {
+      line-height: 1.2;
     }
 
     /* ---- Stress HUD ---- */
@@ -182,9 +269,12 @@
     .email-row .dot {
       width: 8px; height: 8px;
       border-radius: 50%;
-      background: #4285f4;
       flex-shrink: 0;
     }
+    .email-row .dot.dot-slack    { background: #E01E5A; }
+    .email-row .dot.dot-email    { background: #4285F4; }
+    .email-row .dot.dot-calendar { background: #34A853; }
+    .email-row .dot.dot-text     { background: #FBBC04; }
     .email-row .email-text {
       white-space: nowrap;
       overflow: hidden;
@@ -197,85 +287,18 @@
       flex-shrink: 0;
     }
 
-    /* Chart — bottom-left */
+    /* Chart — full background behind everything */
     .stress-chart {
       position: absolute;
-      bottom: 60px;
-      left: 30px;
-      width: 160px;
-      height: 100px;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 60%;
+      pointer-events: none;
     }
     .stress-chart canvas {
       width: 100%;
       height: 100%;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.85);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .stress-chart .chart-label {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      font-size: 10px;
-      color: #999;
-      margin-top: 4px;
-      text-align: center;
-    }
-
-    /* Metrics — bottom-right */
-    .stress-metrics {
-      position: absolute;
-      bottom: 60px;
-      right: 40px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: flex-end;
-    }
-    .metric-row {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-    }
-    .metric-row .metric-val {
-      font-size: 28px;
-      font-weight: 700;
-      color: #333;
-      font-variant-numeric: tabular-nums;
-    }
-    .metric-row .metric-label {
-      font-size: 11px;
-      color: #999;
-    }
-    .metric-row .metric-delta {
-      font-size: 11px;
-      font-weight: 600;
-      color: #e53935;
-    }
-
-    @media (max-width: 480px) {
-      .stress-chart {
-        width: 100px;
-        height: 64px;
-        bottom: 36px;
-        left: 14px;
-      }
-      .stress-chart .chart-label {
-        font-size: 8px;
-      }
-      .stress-metrics {
-        bottom: 36px;
-        right: 14px;
-        gap: 4px;
-      }
-      .metric-row .metric-val {
-        font-size: 16px;
-      }
-      .metric-row .metric-label {
-        font-size: 9px;
-      }
-      .metric-row .metric-delta {
-        font-size: 9px;
-      }
     }
   </style>
 </head>
@@ -290,8 +313,38 @@
   <canvas id="character" width="200" height="274"></canvas>
 
   <div id="landingTitle">Steps to success are both big and small</div>
+
+  <!-- Post-stress phase text — fades in once the notification noise is gone -->
+  <div id="climbText" class="phase-text">And then the steps get bigger.</div>
+
   <div class="ground"></div>
-  <div class="scroll-hint" id="scrollHint" style="opacity:0">&#8595; Scroll to walk &#8595;</div>
+  <div class="scroll-hint" id="scrollHint" style="opacity:0">&#8595; Scroll to take your first step &#8595;</div>
+
+  <!-- Tool bubbles — appear in a halo around the character once climbing is done.
+       Positions are inline styles for easy tweaking; show order is set by
+       data-show-at (scrollY threshold) on each element. -->
+  <div id="toolBubbles">
+    <div class="tool-bubble featured" data-show-at="24200" style="top: 18%; left: 50%;">
+      <div class="icon">&#129302;</div>
+      <div class="label">AI&nbsp;Insights</div>
+    </div>
+    <div class="tool-bubble" data-show-at="24500" style="top: 30%; left: 24%;">
+      <div class="icon">&#128203;</div>
+      <div class="label">Personalized&nbsp;Plans</div>
+    </div>
+    <div class="tool-bubble" data-show-at="24800" style="top: 30%; left: 76%;">
+      <div class="icon">&#127919;</div>
+      <div class="label">Goal&nbsp;Tracking</div>
+    </div>
+    <div class="tool-bubble" data-show-at="25100" style="top: 56%; left: 14%;">
+      <div class="icon">&#128260;</div>
+      <div class="label">Habit&nbsp;Building</div>
+    </div>
+    <div class="tool-bubble" data-show-at="25400" style="top: 56%; left: 86%;">
+      <div class="icon">&#129517;</div>
+      <div class="label">Expert&nbsp;Guidance</div>
+    </div>
+  </div>
 
   <!-- Stress HUD — appears when walking right -->
   <div id="stressHud">
@@ -304,29 +357,9 @@
     <!-- Emails stacking up -->
     <div class="stress-emails" id="emailStack"></div>
 
-    <!-- Rising chart -->
+    <!-- Rising chart — full background -->
     <div class="stress-chart">
-      <canvas id="stressChartCanvas" width="320" height="200"></canvas>
-      <div class="chart-label">STRESS INDEX</div>
-    </div>
-
-    <!-- Metrics -->
-    <div class="stress-metrics">
-      <div class="metric-row">
-        <span class="metric-val" id="metricTasks">0</span>
-        <span class="metric-label">tasks</span>
-        <span class="metric-delta" id="metricTasksDelta"></span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-val" id="metricMeetings">0</span>
-        <span class="metric-label">meetings</span>
-        <span class="metric-delta" id="metricMeetingsDelta"></span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-val" id="metricDeadlines">0</span>
-        <span class="metric-label">deadlines</span>
-        <span class="metric-delta" id="metricDeadlinesDelta"></span>
-      </div>
+      <canvas id="stressChartCanvas"></canvas>
     </div>
   </div>
 
@@ -357,6 +390,12 @@
 
     let cameraX = 0;
     const WORLD_SPEED = 0.3; // world pixels moved per scroll pixel
+
+    // After the staircase, the character stops walking, turns to face the
+    // viewer, and tool bubbles pop up around them. The world camera freezes
+    // at this point so background objects stop sliding past.
+    const TOOLS_PHASE_START = 24000;            // scrollY where freeze begins
+    const FREEZE_CAMERA_X   = TOOLS_PHASE_START * WORLD_SPEED;
 
     function getGroundY() {
       // Must match the CSS .ground rule: top: calc(72% + 137px)
@@ -394,6 +433,9 @@
       bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
       const groundY = getGroundY();
 
+      // Steps render before sprite-based objects so any future props can sit on top
+      drawSteps();
+
       for (const obj of bgObjects) {
         if (!obj.loaded) continue;
 
@@ -425,6 +467,128 @@
       opacity:        0.7
     });
     // ---- Add more objects here with addBgObject({ ... }) ----
+
+    // ============================================================
+    // STAIRCASE — character climbs ascending steps after the stress phase
+    // ============================================================
+    // Each step lives at a worldX with a width and a height.
+    // Steps are stacked back-to-back so the character can step from one
+    // straight onto the next without any gap.
+    //
+    // Tuning rationale:
+    //   STEPS_FIRST_WORLD_X is set so the first step enters the right edge
+    //   of the screen at scrollY ≈ 14500 (just as the stress HUD is gone
+    //   and the climb text has appeared).
+    //
+    //   cameraX = scrollY * WORLD_SPEED   (WORLD_SPEED = 0.3)
+    //   "step enters right edge" ↔ screenX_step = innerWidth
+    //                            ↔ worldX = innerWidth + cameraX
+    // ============================================================
+
+    const STEPS_FIRST_SCROLL_Y = 14500;
+    const STEPS_FIRST_WORLD_X  = window.innerWidth + STEPS_FIRST_SCROLL_Y * WORLD_SPEED;
+
+    // Each step is a "life pillar" that the character climbs. Heights are
+    // expressed as fractions of the tallest allowed step so the staircase
+    // automatically fits inside the viewport on any reasonable screen size
+    // (the character canvas is 274px tall and must stay visible above the
+    // tallest step).
+    //
+    // Color picks are warm earth tones in the same family as the page bg
+    // (#ddd6c8) so they read as distinct pillars without clashing. The top
+    // highlight is a slightly lighter sibling of each face color.
+    const STEP_WIDTH = 320;
+    const STEP_DEFS = [
+      { label: 'Health',        heightFrac: 0.14, face: '#a8b89a', topColor: '#bccaad' },
+      { label: 'Knowledge',     heightFrac: 0.30, face: '#c4b78f', topColor: '#d6cba8' },
+      { label: 'Relationships', heightFrac: 0.50, face: '#c5a797', topColor: '#d7bcae' },
+      { label: 'Wealth',        heightFrac: 0.74, face: '#c4a96b', topColor: '#d6c089' },
+      { label: 'Legacy',        heightFrac: 1.00, face: '#b78060', topColor: '#cc9a7d' },
+    ];
+
+    // Max step height = how high the character can be lifted while keeping
+    // its head in the viewport.
+    //   character canvas top  = ih*0.72 - lift - 137  (must be >= headroom)
+    //   ⇒ maxLift = ih*0.72 - 137 - headroom
+    // The character canvas is 274px tall (half-height = 137).
+    function computeMaxStepHeight() {
+      return Math.max(180, window.innerHeight * 0.72 - 137 - 30);
+    }
+
+    const steps = [];
+    function buildSteps() {
+      steps.length = 0;
+      const maxH = computeMaxStepHeight();
+      let wx = STEPS_FIRST_WORLD_X;
+      for (const def of STEP_DEFS) {
+        steps.push({
+          worldX:   wx,
+          width:    STEP_WIDTH,
+          height:   Math.round(maxH * def.heightFrac),
+          label:    def.label,
+          face:     def.face,
+          topColor: def.topColor
+        });
+        wx += STEP_WIDTH;
+      }
+    }
+    buildSteps();
+
+    function drawSteps() {
+      const groundY = getGroundY();
+      for (const s of steps) {
+        const screenX = s.worldX - cameraX; // parallax 1.0 — matches walk speed
+        if (screenX + s.width < 0 || screenX > bgCanvas.width) continue;
+
+        const top = groundY - s.height;
+
+        // Step face (the front "wall" the label sits on)
+        bgCtx.fillStyle = s.face;
+        bgCtx.fillRect(screenX, top, s.width, s.height);
+
+        // Top surface highlight (where character's feet land)
+        bgCtx.fillStyle = s.topColor;
+        bgCtx.fillRect(screenX, top, s.width, 6);
+
+        // Right-side shadow gives a subtle 3D feel as steps stack
+        bgCtx.fillStyle = 'rgba(0,0,0,0.10)';
+        bgCtx.fillRect(screenX + s.width - 4, top, 4, s.height);
+
+        // ---- Label drawn on the front face ----
+        // Vertical position: centered on the step's front face. This keeps
+        // it BELOW the character canvas (which sits on top of the step) so
+        // the label is never obscured by the character's body.
+        // Font scales up gently with step height so taller pillars feel
+        // more important without overflowing the smallest step.
+        const fontPx = s.height < 100 ? 17 : s.height < 200 ? 21 : 26;
+        bgCtx.font = `700 ${fontPx}px "Segoe UI", system-ui, sans-serif`;
+        bgCtx.textAlign    = 'center';
+        bgCtx.textBaseline = 'middle';
+        bgCtx.fillStyle    = 'rgba(255, 255, 255, 0.95)';
+        bgCtx.fillText(s.label, screenX + s.width / 2, top + s.height / 2);
+      }
+    }
+
+    // The character is rendered at left:50% and feet rest at top:72%+137px.
+    // Its world X equals cameraX + innerWidth/2 (since parallax 1.0).
+    // Returns how many pixels the character should be lifted to stand on the
+    // step they're currently over — or 0 if they're not over any step.
+    function getCharacterLift() {
+      const characterWorldX = cameraX + window.innerWidth / 2;
+      for (const s of steps) {
+        if (characterWorldX >= s.worldX && characterWorldX < s.worldX + s.width) {
+          return s.height;
+        }
+      }
+      return 0;
+    }
+
+    function applyCharacterLift() {
+      // Only lift once the fall sequence has handed off to walking
+      if (!canvas.classList.contains('walking')) return;
+      const lift = getCharacterLift();
+      canvas.style.top = lift > 0 ? `calc(72% - ${lift}px)` : '72%';
+    }
 
     // ============================================================
 
@@ -564,6 +728,8 @@
         if (y >= groundY) {
           canvas.style.top       = '72%';
           canvas.style.transform = 'translate(-50%, -50%)';
+          // Enable smooth lift transition only AFTER fall has snapped into place
+          canvas.classList.add('walking');
           // Show idle frame and unlock scroll
           ctx.clearRect(0, 0, displayW, displayH);
           ctx.drawImage(idleImg, 0, 0, displayW, displayH);
@@ -626,6 +792,9 @@
       // Always redraw background (camera may have moved)
       drawBackground();
 
+      // Lift the character onto whichever step they're currently on
+      applyCharacterLift();
+
       // Back at very top — idle frame
       if (scrollY === 0) {
         drawFacing();
@@ -633,6 +802,13 @@
         scrollAccum  = 0;
         lastScrollY  = 0;
         isFacing     = false;
+        return;
+      }
+
+      // Tools phase — character has finished the climb. Stop walking, face
+      // the viewer, and let the bubbles do the talking.
+      if (scrollY >= TOOLS_PHASE_START) {
+        drawFacing();
         return;
       }
 
@@ -670,9 +846,12 @@
       scrollAccum += Math.abs(scrollDelta);
 
       // Move the world camera with walk direction:
-      //   scroll down (delta > 0, walking right) → cameraX increases → objects slide LEFT  ✓
-      //   scroll up   (delta < 0, walking left)  → cameraX decreases → objects slide RIGHT ✓
-      cameraX += scrollDelta * WORLD_SPEED;
+      //   scroll down (walking right) → cameraX increases → objects slide LEFT  ✓
+      //   scroll up   (walking left)  → cameraX decreases → objects slide RIGHT ✓
+      // Clamped so the world freezes once the character enters the tools phase.
+      // Direct mapping (scrollY * WORLD_SPEED) keeps cameraX in lockstep with
+      // scrollY even after the clamp releases on scroll-up.
+      cameraX = Math.min(scrollY * WORLD_SPEED, FREEZE_CAMERA_X);
 
       const newDir  = scrollY >= lastScrollY ? 'down' : 'up';
 
@@ -706,7 +885,9 @@
     window.addEventListener('resize', () => {
       totalScroll = document.body.scrollHeight - window.innerHeight;
       resizeBgCanvas();
+      buildSteps();      // step heights re-fit the new viewport
       drawBackground();
+      resizeStressChart();
     });
 
     // ============================================================
@@ -718,12 +899,12 @@
     const emailStackEl    = document.getElementById('emailStack');
     const stressChartCvs  = document.getElementById('stressChartCanvas');
     const stressChartCtx  = stressChartCvs.getContext('2d');
-    const metricTasksEl   = document.getElementById('metricTasks');
-    const metricMeetEl    = document.getElementById('metricMeetings');
-    const metricDeadEl    = document.getElementById('metricDeadlines');
-    const metricTasksD    = document.getElementById('metricTasksDelta');
-    const metricMeetD     = document.getElementById('metricMeetingsDelta');
-    const metricDeadD     = document.getElementById('metricDeadlinesDelta');
+
+    function resizeStressChart() {
+      stressChartCvs.width  = window.innerWidth;
+      stressChartCvs.height = Math.floor(window.innerHeight * 0.6);
+    }
+    resizeStressChart();
 
     const STRESS_START = 800;    // scrollY where stress HUD fades in
     const STRESS_FULL  = 8000;  // scrollY where everything is maxed out
@@ -731,24 +912,26 @@
     const STRESS_GONE  = 13000; // scrollY where HUD is completely gone
 
     const emails = [
-      { from: 'Boss',        subject: 'Need this ASAP',              time: '8:01 AM' },
-      { from: 'HR',          subject: 'Mandatory training overdue',  time: '8:04 AM' },
-      { from: 'Client',      subject: 'RE: RE: RE: Urgent update',   time: '8:07 AM' },
-      { from: 'Jira',        subject: '[PROJ-1247] moved to In Prog', time: '8:09 AM' },
-      { from: 'Slack',       subject: '14 unread messages in #general', time: '8:12 AM' },
-      { from: 'Calendar',    subject: 'Meeting in 15 min — no agenda', time: '8:14 AM' },
-      { from: 'Boss',        subject: 'Actually need it sooner',     time: '8:16 AM' },
-      { from: 'IT Support',  subject: 'Password expires today',      time: '8:18 AM' },
-      { from: 'Finance',     subject: 'Expense report rejected',     time: '8:21 AM' },
-      { from: 'Slack',       subject: '27 unread messages in #urgent', time: '8:23 AM' },
+      { from: 'Slack',     subject: 'Need this ASAP…',              time: '8:01 AM' },
+      { from: 'Email',     subject: 'Updated numbers attached…',    time: '8:04 AM' },
+      { from: 'Calendar',  subject: 'Budget review at 2PM…',        time: '8:07 AM' },
+      { from: 'Text',      subject: 'Did you move money yet…',      time: '8:09 AM' },
+      { from: 'Slack',     subject: 'Client asking again…',         time: '8:12 AM' },
+      { from: 'Email',     subject: 'Investment deck inside…',      time: '8:14 AM' },
+      { from: 'Calendar',  subject: 'Tax deadline coming up…',      time: '8:16 AM' },
+      { from: 'Text',      subject: 'Can you call me quick…',       time: '8:18 AM' },
+      { from: 'Slack',     subject: 'We have a fire to put out…',   time: '8:21 AM' },
+      { from: 'Email',     subject: 'Following up on this…',        time: '8:23 AM' },
     ];
 
-    // Pre-build email DOM rows
+    // Pre-build email DOM rows with color-coded dots
+    const dotClassMap = { Slack: 'dot-slack', Email: 'dot-email', Calendar: 'dot-calendar', Text: 'dot-text' };
     emails.forEach(e => {
       const row = document.createElement('div');
       row.className = 'email-row';
+      const dotCls = dotClassMap[e.from] || 'dot-email';
       row.innerHTML =
-        '<div class="dot"></div>' +
+        '<div class="dot ' + dotCls + '"></div>' +
         '<span class="email-text"><b>' + e.from + '</b> — ' + e.subject + '</span>' +
         '<span class="email-time">' + e.time + '</span>';
       emailStackEl.appendChild(row);
@@ -792,20 +975,9 @@
         row.classList.toggle('show', i < visibleEmails);
       });
 
-      // Switch to phone sprite after the 3rd email (Client RE:RE:RE:) appears,
+      // Switch to phone sprite after the 3rd email appears,
       // revert to normal once the HUD has fully faded out (handled above)
       usePhoneSprite = (visibleEmails >= 3) && (sy < STRESS_GONE);
-
-      // --- Metrics ---
-      const tasks    = Math.floor(t * 47);
-      const meetings = Math.floor(t * 12);
-      const deadlines = Math.floor(t * 6);
-      metricTasksEl.textContent = tasks;
-      metricMeetEl.textContent  = meetings;
-      metricDeadEl.textContent  = deadlines;
-      metricTasksD.textContent  = tasks > 0 ? '+' + tasks : '';
-      metricMeetD.textContent   = meetings > 0 ? '+' + meetings : '';
-      metricDeadD.textContent   = deadlines > 0 ? '+' + deadlines : '';
 
       // --- Chart ---
       drawStressChart(t);
@@ -817,55 +989,78 @@
       const ctx2 = stressChartCtx;
       ctx2.clearRect(0, 0, w, h);
 
-      const pad = 20;
-      const plotW = w - pad * 2;
-      const plotH = h - pad * 2;
-
-      // Generate a rising jagged line
-      const points = 24;
+      const points = 40;
       const visiblePts = Math.max(2, Math.floor(t * points));
 
-      ctx2.beginPath();
-      ctx2.moveTo(pad, h - pad);
-
-      for (let i = 0; i < visiblePts; i++) {
-        const px = pad + (i / (points - 1)) * plotW;
-        const baseY = (i / (points - 1)); // 0→1
-        const jitter = Math.sin(i * 2.7) * 0.12 + Math.cos(i * 4.1) * 0.08;
-        const val = Math.min(baseY + jitter, 1);
-        const py = (h - pad) - val * plotH;
-        ctx2.lineTo(px, py);
+      // Build the line path
+      function traceLine() {
+        ctx2.moveTo(0, h);
+        for (let i = 0; i < visiblePts; i++) {
+          const px = (i / (points - 1)) * w;
+          const baseY = i / (points - 1);
+          const jitter = Math.sin(i * 2.7) * 0.10 + Math.cos(i * 4.1) * 0.06 + Math.sin(i * 1.3) * 0.04;
+          const val = Math.min(baseY + jitter, 1);
+          const py = h - val * h;
+          ctx2.lineTo(px, py);
+        }
       }
 
-      // Fill under the line
-      const lastX = pad + ((visiblePts - 1) / (points - 1)) * plotW;
-      ctx2.lineTo(lastX, h - pad);
+      // Fill under the line — soft gradient rising from bottom
+      ctx2.beginPath();
+      traceLine();
+      const lastX = ((visiblePts - 1) / (points - 1)) * w;
+      ctx2.lineTo(lastX, h);
       ctx2.closePath();
 
-      const grad = ctx2.createLinearGradient(0, pad, 0, h - pad);
-      grad.addColorStop(0, 'rgba(229, 57, 53, 0.35)');
-      grad.addColorStop(1, 'rgba(229, 57, 53, 0.05)');
+      const grad = ctx2.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(229, 57, 53, 0.18)');
+      grad.addColorStop(1, 'rgba(229, 57, 53, 0.02)');
       ctx2.fillStyle = grad;
       ctx2.fill();
 
       // Stroke the line
       ctx2.beginPath();
-      ctx2.moveTo(pad, h - pad);
-      for (let i = 0; i < visiblePts; i++) {
-        const px = pad + (i / (points - 1)) * plotW;
-        const baseY = (i / (points - 1));
-        const jitter = Math.sin(i * 2.7) * 0.12 + Math.cos(i * 4.1) * 0.08;
-        const val = Math.min(baseY + jitter, 1);
-        const py = (h - pad) - val * plotH;
-        ctx2.lineTo(px, py);
-      }
-      ctx2.strokeStyle = '#e53935';
-      ctx2.lineWidth = 2.5;
+      traceLine();
+      ctx2.strokeStyle = 'rgba(229, 57, 53, 0.25)';
+      ctx2.lineWidth = 2;
       ctx2.lineJoin = 'round';
       ctx2.stroke();
     }
 
     window.addEventListener('scroll', updateStressHud, { passive: true });
+
+    // ============================================================
+    // CLIMB-PHASE TEXT — appears once notifications are gone, fades
+    // out shortly after the character starts climbing the first step.
+    // ============================================================
+    const CLIMB_TEXT_SHOW_START = 13200; // just after stress HUD finishes fading
+    const CLIMB_TEXT_SHOW_END   = 17000; // just after first step is climbed
+    const climbTextEl = document.getElementById('climbText');
+
+    function updateClimbText() {
+      const sy = window.scrollY;
+      const visible = sy >= CLIMB_TEXT_SHOW_START && sy <= CLIMB_TEXT_SHOW_END;
+      climbTextEl.classList.toggle('show', visible);
+    }
+
+    window.addEventListener('scroll', updateClimbText, { passive: true });
+
+    // ============================================================
+    // TOOL BUBBLES — pop up around the character once they stop.
+    // Each bubble has a data-show-at scrollY threshold (set in HTML) so
+    // tweaking the stagger or order is just an attribute change.
+    // ============================================================
+    const toolBubbleEls = Array.from(document.querySelectorAll('#toolBubbles .tool-bubble'));
+
+    function updateToolBubbles() {
+      const sy = window.scrollY;
+      for (const el of toolBubbleEls) {
+        const showAt = parseInt(el.dataset.showAt, 10);
+        el.classList.toggle('show', sy >= showAt);
+      }
+    }
+
+    window.addEventListener('scroll', updateToolBubbles, { passive: true });
 
   </script>
 
